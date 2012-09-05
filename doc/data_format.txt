@@ -1,0 +1,138 @@
+= Data format of dynzip =
+
+== 1. Introduction == 
+
+=== Purpose ===
+
+The purpose of this specification is to define a lossless compressed data format that:
+
+* Is independent of CPU type, operating system, file system, and
+  character set, and hence can be used for interchange;
+
+* Can compress or decompress a data stream or a randomly accessible
+  file to produce another data stream or file, using only bounded
+  amount of intermediate storage known after reading the file header,
+  and hence can be used in data communications or similar structures
+  such as Unix filters;
+
+* Given the compressed file and a position in the uncompressed data
+  can uncompress the data from that position thus giving random access
+  into a compressed file;
+
+* Given the compressed file with index and a record number in the
+  uncompressed data can uncompress the data from that record number
+  thus giving random access to a record into a compressed file;
+
+* Compresses data as fast as it can be transmitted, while compressing
+  better if transmission is stalled for any period of time;
+
+* Can be implemented readily in a manner not covered by patents, and
+  hence can be practiced freely;
+
+* Contains the original file name if available.
+
+* If a block is obscured in transmission this should be caught and it
+  is relatively easy to get back on track.
+
+The data format defined by this specification does not attempt to:
+
+* Achieve the maximimal compression.
+
+* Compress specialized data (e.g., raster graphics) as well as the
+  best currently available specialized algorithms.
+
+=== Intended audience ===
+
+This specification is intended for use by implementors of software to
+compress data into dynzip format and/or decompress data from dynzip
+format.
+
+The text of the specification assumes a basic background in
+programming at the level of bits and other primitive data
+representations.
+
+
+
+
+Requirements:
+
+
+Nice to have:
+
+* Append 2 Dynzip files and the result is a Dynzip file.
+
+* Know in advance how much memory is needed for decompression.
+
+* Random access by record number - not just bytes. There can be
+  several record formats - each with their own index. E.g. record
+  could be \n, or fixed length or separated by '\n\n'+'From '.
+
+== 2. Detailed specification ==
+
+64-bit relpos = 64-bit signed relative position relative to the start
+of the current chunk. Position cannot be absolute because files can be
+appended.
+
+64-bit compression method = Unique number of the compression
+method. The first 32-bit determines the decompression method. This
+makes it possible to have multiple compression variants that can all
+be decompressed the same way.
+
+64-bit CRC = A crc method where we can easily compute the new crc
+given old crc and which bytes in which positions have changed or the
+crc of those.
+
+crc(0,"ab") = crc(0,"a")+crc(1,"b")
+crc(0,"cb") = crc(0,"ab")-crc(0,"a")+crc(0,"c")
+
+
+=== File ===
+
+Dynzip File FourCC ("DYNZ").
+* 32-bit file format version number.
+* 64-bit relpos of next chunk.
+* 64-bit relpos of index. 0 if unknown or no index.
+* 64-bit maximal block size.
+* \0 terminated string of original filename. 64-bit padded.
+* \0 terminated comment string. 64-bit padded.
+* 64-bit mtime
+
+
+=== Data chunk ===
+
+Dynzip data chunk FourCC ("DYND").
+* 32-bit crc of rest of chunk. 0 = not computed.
+* 64-bit relpos of next chunk.
+* 64-bit length of compressed data in chunk.
+* 64-bit length of uncompressed data in chunk.
+* 64-bit compression method.
+* Compressed data padded to 64-bit alignment.
+* Optional extra padding with 64-bit alignment.
+
+=== Index chunk ===
+
+Dynzip index chunk FourCC ("DYNI").
+* 32-bit crc of rest of chunk. 0 = not computed.
+* 64-bit relpos of next chunk.
+* 64-bit length of all compressed data.
+* 64-bit length of all uncompressed data.
+* 64-bit crc of File + Data chunks. 0 = not computed.
+* 64-bit number of data chunks
+* 64-bit 0 (sum of length of all uncompressed data in previous chunks).
+* 64-bit relpos of first chunk.
+(repeat:
+* 64-bit sum of length of all uncompressed data in previous chunks.
+* 64-bit relpos of next chunk.
+)
+
+=== Record index chunk ===
+
+Dynzip record index chunk FourCC ("DYNR").
+* 32-bit crc of rest of chunk. 0 = not computed.
+* 64-bit relpos of next chunk (e.g. end of file or appended file).
+* 64-bit number of records.
+* \0 terminated string start_record regexp. 64-bit padded.
+* \0 terminated string end_record regexp. 64-bit padded.
+(repeat:
+* 64-bit position in uncompressed data of record start
+)
