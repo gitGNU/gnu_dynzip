@@ -1,0 +1,29 @@
+= Selecting the compression method =
+
+To select the best candidate method for compressing we need to know
+how fast a given compression method is.
+
+This is done by collecting statistics during run.
+
+For each block compressed the method, block size, compress ratio, and
+cpu-time per byte to compress is recorded.
+
+We assume that the next block of data compresses just as well as the
+previous block.
+
+Dynzip will know how fast it is sending data and thus know the current
+target bandwidth to hit.
+
+If dynzip is sending slower than needed, decrease block size and look
+for methods that take less cpu time.
+
+If dynzip is sending faster than needed, increase block size and look
+for methods that have higher compress ratios.
+
+The statistics will be saved with a filename depending on the
+hostname, and will be aggregated after each run.
+
+The selected methods should be based on probability (a particle filter
+might be good), so that if method A is normally both slower and
+compresses less than method B then method B should be selected more
+often than method A, but method A should be selected now and then.
