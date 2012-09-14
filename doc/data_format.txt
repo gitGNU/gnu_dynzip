@@ -111,28 +111,40 @@ Dynzip data chunk FourCC ("DYND").
 
 === Index chunk ===
 
-Dynzip index chunk FourCC ("DYNI").
+Dynzip chunk index chunk FourCC ("CHKI").
 * 32-bit crc of rest of chunk. 0 = not computed.
 * 64-bit relpos of next chunk.
 * 64-bit length of all compressed data.
 * 64-bit length of all uncompressed data.
 * 64-bit crc of File + Data chunks. 0 = not computed.
 * 64-bit number of data chunks
-* 64-bit 0 (sum of length of all uncompressed data in previous chunks).
-* 64-bit relpos of first chunk.
-(repeat:
-* 64-bit sum of length of all uncompressed data in previous chunks.
-* 64-bit relpos of next chunk.
+(repeat number of data chunks n:
+* 64-bit sum of uncompressed length of data chunk 1-n
+* 64-bit relpos data chunk n
 )
 
 === Record index chunk ===
 
-Dynzip record index chunk FourCC ("DYNR").
+Dynzip record index chunk FourCC ("RECI").
 * 32-bit crc of rest of chunk. 0 = not computed.
 * 64-bit relpos of next chunk (e.g. end of file or appended file).
 * 64-bit number of records.
 * \0 terminated string start_record regexp. 64-bit padded.
 * \0 terminated string end_record regexp. 64-bit padded.
-(repeat:
+(repeat number of records:
 * 64-bit position in uncompressed data of record start
+)
+
+? How can we compress the index? We know they are positions are increasing.
+
+
+
+
+
+Advanced Trie of number of record -> uncompressed position (min size 8*256*64-bit=128kbyte):
+(repeat 8:
+ (repeat 256:
+ * Level 1-7: 64-bit relpos of next trie level (0=out of range)
+ * Level 8: 64-bit position in uncompressed data of record start
+ )
 )
